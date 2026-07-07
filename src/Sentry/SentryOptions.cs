@@ -543,6 +543,44 @@ public class SentryOptions
         _beforeSendTransaction = (transaction, _) => beforeSendTransaction(transaction);
     }
 
+    private Func<SentryEvent, SentryHint, SentryEvent?>? _beforeSendFeedback;
+
+    internal Func<SentryEvent, SentryHint, SentryEvent?>? BeforeSendFeedbackInternal => _beforeSendFeedback;
+
+    /// <summary>
+    /// Configures a callback to invoke before sending user feedback to Sentry.
+    /// </summary>
+    /// <remarks>
+    /// The feedback event is provided as a <see cref="SentryEvent"/>; the feedback itself is available
+    /// at <c>event.Contexts.Feedback</c>. The event returned by this callback will be sent to Sentry, so
+    /// this is your chance to inspect and/or modify it (for example, to scrub PII). Return <see langword="null"/>
+    /// to drop the feedback entirely.
+    /// Feedback events do <b>not</b> go through the <see cref="SetBeforeSend(Func{SentryEvent, SentryHint, SentryEvent})"/>
+    /// callback. If the callback throws, the feedback is dropped to avoid sending unscrubbed data.
+    /// </remarks>
+    /// <param name="beforeSendFeedback">The callback</param>
+    public void SetBeforeSendFeedback(Func<SentryEvent, SentryHint, SentryEvent?> beforeSendFeedback)
+    {
+        _beforeSendFeedback = beforeSendFeedback;
+    }
+
+    /// <summary>
+    /// Configures a callback to invoke before sending user feedback to Sentry.
+    /// </summary>
+    /// <remarks>
+    /// The feedback event is provided as a <see cref="SentryEvent"/>; the feedback itself is available
+    /// at <c>event.Contexts.Feedback</c>. The event returned by this callback will be sent to Sentry, so
+    /// this is your chance to inspect and/or modify it (for example, to scrub PII). Return <see langword="null"/>
+    /// to drop the feedback entirely.
+    /// Feedback events do <b>not</b> go through the <see cref="SetBeforeSend(Func{SentryEvent, SentryHint, SentryEvent})"/>
+    /// callback. If the callback throws, the feedback is dropped to avoid sending unscrubbed data.
+    /// </remarks>
+    /// <param name="beforeSendFeedback">The callback</param>
+    public void SetBeforeSendFeedback(Func<SentryEvent, SentryEvent?> beforeSendFeedback)
+    {
+        _beforeSendFeedback = (@event, _) => beforeSendFeedback(@event);
+    }
+
     private Func<Breadcrumb, SentryHint, Breadcrumb?>? _beforeBreadcrumb;
 
     internal Func<Breadcrumb, SentryHint, Breadcrumb?>? BeforeBreadcrumbInternal => _beforeBreadcrumb;
