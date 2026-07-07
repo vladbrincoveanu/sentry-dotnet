@@ -1067,6 +1067,32 @@ public partial class SentryClientTests : IDisposable
     }
 
     [Fact]
+    public void CaptureFeedback_BeforeSendFeedbackSet_ReceivesHintFromCaller()
+    {
+        //Arrange
+        var feedback = new SentryFeedback("Everything is great!");
+        var hint = new SentryHint();
+        var attachment = AttachmentHelper.FakeAttachment("scrub-me.txt");
+        hint.Attachments.Add(attachment);
+        SentryHint receivedHint = null;
+        _fixture.SentryOptions.SetBeforeSendFeedback((@event, h) =>
+        {
+            receivedHint = h;
+            return @event;
+        });
+        var sut = _fixture.GetSut();
+
+        //Act
+        var id = sut.CaptureFeedback(feedback, out var result, null, hint);
+
+        //Assert
+        result.Should().Be(CaptureFeedbackResult.Success);
+        id.Should().NotBe(SentryId.Empty);
+        receivedHint.Should().BeSameAs(hint);
+        receivedHint.Attachments.Should().Contain(attachment);
+    }
+
+    [Fact]
     public void CaptureFeedback_BeforeSendFeedbackReturnsNull_FeedbackDropped()
     {
         //Arrange
@@ -1089,6 +1115,10 @@ public partial class SentryClientTests : IDisposable
     {
         //Arrange
         var feedback = new SentryFeedback("Everything is great!");
+        var logger = Substitute.For<IDiagnosticLogger>();
+        logger.IsEnabled(Arg.Any<SentryLevel>()).Returns(true);
+        _fixture.SentryOptions.DiagnosticLogger = logger;
+        _fixture.SentryOptions.Debug = true;
         _fixture.SentryOptions.SetBeforeSendFeedback((SentryEvent _) => throw new InvalidOperationException("boom"));
         var sut = _fixture.GetSut();
 
@@ -1100,6 +1130,7 @@ public partial class SentryClientTests : IDisposable
         id.Should().Be(SentryId.Empty);
         _ = sut.Worker.DidNotReceive().EnqueueEnvelope(Arg.Any<Envelope>());
         _fixture.ClientReportRecorder.Received(1).RecordDiscardedEvent(DiscardReason.BeforeSend, DataCategory.Feedback);
+        logger.Received(1).Log(SentryLevel.Error, Arg.Any<string>(), Arg.Any<InvalidOperationException>(), Arg.Any<object[]>());
     }
 
     [Fact]
