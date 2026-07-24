@@ -106,13 +106,16 @@ public partial class MainExceptionProcessorTests
     [Fact]
     public void Process_InnerExceptionChain_UnhandledOuter_PropagatesHandledFalseToInner()
     {
+        // Arrange
         var sut = _fixture.GetSut();
         var evt = new SentryEvent();
         var outer = new Exception("outer", new Exception("inner"));
         outer.Data[Mechanism.HandledKey] = false;
 
+        // Act
         sut.Process(outer, evt);
 
+        // Assert
         Assert.NotNull(evt.SentryExceptions);
         // Discriminating: the default is handled=true, so inner reporting false proves it inherited the outer value.
         Assert.Equal(false, evt.SentryExceptions.Single(e => e.Value == "outer").Mechanism!.Handled);
@@ -122,12 +125,15 @@ public partial class MainExceptionProcessorTests
     [Fact]
     public void Process_InnerExceptionChain_NoExplicitFlag_DefaultsBothToHandledTrue()
     {
+        // Arrange
         var sut = _fixture.GetSut();
         var evt = new SentryEvent();
         var outer = new Exception("outer", new Exception("inner"));
 
+        // Act
         sut.Process(outer, evt);
 
+        // Assert
         Assert.NotNull(evt.SentryExceptions);
         Assert.Equal(true, evt.SentryExceptions.Single(e => e.Value == "outer").Mechanism!.Handled);
         Assert.Equal(true, evt.SentryExceptions.Single(e => e.Value == "inner").Mechanism!.Handled);
@@ -136,6 +142,7 @@ public partial class MainExceptionProcessorTests
     [Fact]
     public void Process_InnerExceptionChain_ExplicitFlagOnInner_WinsOverInheritedParentValue()
     {
+        // Arrange
         var sut = _fixture.GetSut();
         var evt = new SentryEvent();
         var inner = new Exception("inner");
@@ -143,8 +150,10 @@ public partial class MainExceptionProcessorTests
         var outer = new Exception("outer", inner);
         outer.Data[Mechanism.HandledKey] = false;
 
+        // Act
         sut.Process(outer, evt);
 
+        // Assert
         Assert.NotNull(evt.SentryExceptions);
         // The inner's explicit handled=true wins over the false it would otherwise inherit from the outer.
         Assert.Equal(false, evt.SentryExceptions.Single(e => e.Value == "outer").Mechanism!.Handled);
@@ -154,6 +163,7 @@ public partial class MainExceptionProcessorTests
     [Fact]
     public void Process_ThreeLevelChain_ExplicitFlagOnMiddle_PropagatesToItsDescendant()
     {
+        // Arrange
         var sut = _fixture.GetSut();
         var evt = new SentryEvent();
         var deepest = new Exception("deepest");
@@ -162,8 +172,10 @@ public partial class MainExceptionProcessorTests
         var outer = new Exception("outer", middle);
         outer.Data[Mechanism.HandledKey] = true;
 
+        // Act
         sut.Process(outer, evt);
 
+        // Assert
         Assert.NotNull(evt.SentryExceptions);
         // Discriminating: default and outer are both true, so deepest reporting false proves it
         // inherited the middle's explicit value rather than the default or the root.

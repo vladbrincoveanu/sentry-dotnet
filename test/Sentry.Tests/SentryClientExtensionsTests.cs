@@ -25,45 +25,57 @@ public class SentryClientExtensionsTests
     [Fact]
     public void CaptureException_ExplicitHandledFalse_SetsFlag()
     {
+        // Arrange
         _ = _sut.IsEnabled.Returns(true);
         var ex = new Exception("caught and rethrown");
 
+        // Act
         _ = _sut.CaptureException(ex, handled: false);
 
+        // Assert
         Assert.Equal(false, ex.Data[Mechanism.HandledKey]);
     }
 
     [Fact]
     public void CaptureException_ExplicitHandledTrue_SetsFlag()
     {
+        // Arrange
         _ = _sut.IsEnabled.Returns(true);
         var ex = new Exception("caught");
 
+        // Act
         _ = _sut.CaptureException(ex, handled: true);
 
+        // Assert
         Assert.Equal(true, ex.Data[Mechanism.HandledKey]);
     }
 
     [Fact]
     public void CaptureException_NoHandledArgument_PreservesPresetFlag()
     {
+        // Arrange
         _ = _sut.IsEnabled.Returns(true);
         var ex = new Exception("preset mechanism");
         ex.SetSentryMechanism("MyHandler", handled: false);
 
+        // Act
         _ = _sut.CaptureException(ex);
 
+        // Assert
         Assert.Equal(false, ex.Data[Mechanism.HandledKey]);
     }
 
     [Fact]
     public void CaptureException_DisabledClientExplicitHandled_DoesNotMutateExceptionData()
     {
+        // Arrange
         _ = _sut.IsEnabled.Returns(false);
         var ex = new Exception("captured while disabled");
 
+        // Act
         var id = _sut.CaptureException(ex, handled: false);
 
+        // Assert
         Assert.False(ex.Data.Contains(Mechanism.HandledKey));
         Assert.Equal(SentryId.Empty, id);
         _ = _sut.DidNotReceive().CaptureEvent(Arg.Any<SentryEvent>());
